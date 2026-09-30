@@ -16,6 +16,7 @@ await renderToString(
 - **Cause:** each inline component opens a fragment, and Qwik computes the fragment's position by walking the parent's whole `vNodeData` array from the start. That array grows with every child.
 - **Fix:** remember where the last walk stopped and continue from there. The render becomes linear, and the HTML stays byte-identical.
 - **Affected:** `@qwik.dev/core` 2.0.0-beta.45 and the nightly from `main`.
+- **Issue:** [QwikDev/qwik#9084](https://github.com/QwikDev/qwik/issues/9084)
 
 ## Run it
 
