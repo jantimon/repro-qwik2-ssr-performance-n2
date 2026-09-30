@@ -1,0 +1,15 @@
+{
+  "name": "repro-qwik2-ssr-performance-n2",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build && vite build --ssr",
+    "bench": "npm run build && node dist/bench.js",
+    "bench:patched": "node scripts/patch.mjs && npm run bench; node scripts/patch.mjs --restore"
+  },
+  "devDependencies": {
+    "@qwik.dev/core": "2.0.0-beta.45",
+    "typescript": "^5.9.0",
+    "vite": "^8.3.0"
+  }
+}
