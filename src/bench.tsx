@@ -25,8 +25,11 @@ async function time(inline: boolean, n: number) {
   return { ms, hash: createHash("sha1").update(stable).digest("hex").slice(0, 10) };
 }
 
-// warm-up
-await time(true, 100);
+// warm-up for both render paths, so the first measured row is not slower than the next
+for (let w = 0; w < 5; w++) {
+  await time(true, 1000);
+  await time(false, 1000);
+}
 
 console.log("| n | `<Inline>` | `<b>` | html sha1 |");
 console.log("|---:|---:|---:|---|");

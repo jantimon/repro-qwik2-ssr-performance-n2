@@ -1,8 +1,8 @@
 # Qwik 2 SSR: n² render time for sibling inline components
 
-![Render time against the number of sibling inline components: 212 ms at 6,000 inline components, 2.4 ms for the same number of plain elements](docs/header.png)
+An inline component is a plain function component: no `component$`, no `<Slot/>`. When a parent has many of them as children, `renderToString` gets slower with n². Double the children, and the render takes 4× as long. The same markup as plain elements takes 2× as long, as expected.
 
-`renderToString` slows down with n² when a parent has many inline components as children. An inline component is a plain function component: no `component$`, no `<Slot/>`. Double the children, and render time goes up almost 4×. The same markup written as plain elements scales linearly.
+![Render time against the number of siblings: 212 ms for 6,000 inline components, 2.4 ms for 6,000 plain elements](docs/header.png)
 
 ```tsx
 const Inline = ({ children }) => <b>{children}</b>;
@@ -13,6 +13,10 @@ await renderToString(
 );
 ```
 
+- **Cause:** each inline component opens a fragment, and Qwik computes the fragment's position by walking the parent's whole `vNodeData` array from the start. That array grows with every child.
+- **Fix:** remember where the last walk stopped and continue from there. The render becomes linear, and the HTML stays byte-identical.
+- **Affected:** `@qwik.dev/core` 2.0.0-beta.45 and the nightly from `main`.
+
 ## Run it
 
 ```sh
@@ -21,7 +25,7 @@ npm run bench          # @qwik.dev/core 2.0.0-beta.45 as published
 npm run bench:patched  # same, with the change below applied to dist/server.prod.mjs
 ```
 
-`npm run bench` does a client build first, as Qwik needs `q-manifest.json`. It then does an SSR build and times `renderToString` (median of 5).
+`npm run bench` does a client build first, as Qwik needs `q-manifest.json`. It then does an SSR build and times `renderToString` (median of 5, after a warm-up).
 
 ## Results
 
@@ -29,10 +33,10 @@ Node 24.13, Apple M1 Max, production build:
 
 | n | `<Inline>` | `<b>` | `<Inline>` + patch |
 |---:|---:|---:|---:|
-| 500 | 2.6 ms | 0.3 ms | 1.4 ms |
-| 1,000 | 6.8 ms | 0.5 ms | 1.2 ms |
-| 2,000 | 25.2 ms | 1.0 ms | 2.7 ms |
-| 4,000 | 93.1 ms | 1.6 ms | 4.4 ms |
+| 500 | 2.0 ms | 0.2 ms | 0.6 ms |
+| 1,000 | 6.6 ms | 0.5 ms | 0.9 ms |
+| 2,000 | 24.3 ms | 1.1 ms | 1.7 ms |
+| 4,000 | 94.1 ms | 2.3 ms | 5.2 ms |
 
 With the patch, the HTML is byte-identical: the bench prints a sha1 of the HTML without the random `q:instance` and without the two build hashes (`q:manifest-hash` and the `bundle-graph.json` name). Those change because the client build also bundles the patched server file.
 
@@ -77,8 +81,8 @@ if (track && !cursorSaved) {
 }
 ```
 
-The length gate matters. Without it, a page of folded plain elements rendered about 25% slower in the css-in-js bench, because every element's own short `vNodeData` got a WeakMap entry.
+The length check matters. Without it, a page of plain elements rendered about 25% slower in the css-in-js bench, because every element's own short `vNodeData` got a WeakMap entry.
 
-A field on the container frame next to `vNodeData` would work as well as the WeakMap.
+A field on the element frame next to `vNodeData` would work as well as the WeakMap.
 
 [`scripts/patch.mjs`](scripts/patch.mjs) applies the same change to the published `dist/server.prod.mjs` for `bench:patched`, then restores the original file.
