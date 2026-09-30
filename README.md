@@ -1,5 +1,7 @@
 # Qwik 2 SSR: n² render time for sibling inline components
 
+![Render time against the number of sibling inline components: 212 ms at 6,000 inline components, 2.4 ms for the same number of plain elements](docs/header.png)
+
 `renderToString` slows down with n² when a parent has many inline components as children. An inline component is a plain function component: no `component$`, no `<Slot/>`. Double the children, and render time goes up almost 4×. The same markup written as plain elements scales linearly.
 
 ```tsx
